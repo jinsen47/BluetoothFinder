@@ -1,21 +1,22 @@
-package com.jinsen.bluetoothfinder;
+package com.jinsen.bluetoothfinder.UI;
 
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.preference.PreferenceFragment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
-import android.widget.RadioGroup;
-import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
+
+import com.jinsen.bluetoothfinder.Service.BluetoothChatService;
+import com.jinsen.bluetoothfinder.R;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -44,9 +45,7 @@ public class MainActivity extends ActionBarActivity {
     private static final String BT_INVALID = "蓝牙不可用";
 
     // Layout Views
-    private Spinner mDeviceSpinner;
-    private RadioGroup mGroup;
-    private Spinner mAlarmSpinner;
+    private ListView mListView;
     private ImageButton mSendButton;
 
     // Name of the connected device
@@ -69,9 +68,7 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         //Get views' reference
-        mDeviceSpinner = ((Spinner) findViewById(R.id.devicespinner));
-        mGroup = ((RadioGroup) findViewById(R.id.radiogroup));
-        mAlarmSpinner = ((Spinner) findViewById(R.id.alarmspinner));
+
         mSendButton = ((ImageButton) findViewById(R.id.sendButton));
 
         //Request Bluetooth
@@ -82,6 +79,11 @@ public class MainActivity extends ActionBarActivity {
             finish();
             return;
         }
+
+        FragmentTransaction fmTrans = getFragmentManager().beginTransaction();
+        fmTrans.add(SetupFragment.newInstance(),SetupFragment.TAG);
+        fmTrans.addToBackStack(null);
+        fmTrans.commit();
 
     }
 
@@ -97,10 +99,13 @@ public class MainActivity extends ActionBarActivity {
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
             // Otherwise, setup the chat session
         } else {
-            if (mChatService == null) ;
+            if (mChatService == null) setupFinder();
         }
     }
 
+    private void setupFinder() {
+
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

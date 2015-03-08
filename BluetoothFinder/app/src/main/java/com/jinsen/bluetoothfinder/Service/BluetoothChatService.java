@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.jinsen.bluetoothfinder;
+package com.jinsen.bluetoothfinder.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -213,7 +213,7 @@ public class BluetoothChatService {
     /**
      * Write to the ConnectedThread in an unsynchronized manner
      * @param out The bytes to write
-     * @see com.jinsen.bluetoothfinder.BluetoothChatService.ConnectedThread#write(byte[])
+     * @see BluetoothChatService.ConnectedThread#write(byte[])
      */
     public void write(byte[] out) {
         // Create temporary object
