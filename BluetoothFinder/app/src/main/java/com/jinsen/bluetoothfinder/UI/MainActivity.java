@@ -4,6 +4,7 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.net.Uri;
 import android.preference.PreferenceFragment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -18,8 +19,10 @@ import android.widget.Toast;
 import com.jinsen.bluetoothfinder.Service.BluetoothChatService;
 import com.jinsen.bluetoothfinder.R;
 
+import java.util.Set;
 
-public class MainActivity extends ActionBarActivity {
+
+public class MainActivity extends ActionBarActivity implements SetupFragment.OnFragmentInteractionListener{
 
     // Debugging
     private static final String TAG = "BluetoothChat";
@@ -131,5 +134,10 @@ public class MainActivity extends ActionBarActivity {
 
     private void showText(String string) {
         Toast.makeText(this, string, Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onFragmentInteraction(Uri uri) {
+
     }
 }
