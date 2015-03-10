@@ -35,4 +35,24 @@
     <string name="secure_connect">Connect a device - Secure</string>
     <string name="insecure_connect">Connect a device - Insecure</string>
     <string name="discoverable">Make discoverable</string>
+
+    <!-- Preference -->
+    <string name="chooseTime_summary">请选择报警时间</string>
+    <string name="chooseDevice_summary">请选择防丢器</string>
+    <string name="chooseAlarm_summary">请选择报警音</string>
+    <string-array name="time">
+        <item>5秒</item>
+        <item>10秒</item>
+        <item>15秒</item>
+        <item>20秒</item>
+    </string-array>
+    <string-array name="time_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
