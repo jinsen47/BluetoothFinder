@@ -1,6 +1,10 @@
 package com.jinsen.bluetoothfinder.UI;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
+import android.content.SharedPreferences;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
@@ -66,6 +70,10 @@ public class SetupFragment extends PreferenceFragment {
         mDevice = findPreference("pref_key_device");
         mTime = ((ListPreference) findPreference("pref_key_time"));
 
+        mRingtone.setOnPreferenceChangeListener(new SetupChangeListener());
+        mDevice.setOnPreferenceChangeListener(new SetupChangeListener());
+        mTime.setOnPreferenceChangeListener(new SetupChangeListener());
+
 //        mRingtone.setOnPreferenceChangeListener();
     }
 
@@ -97,11 +105,34 @@ public class SetupFragment extends PreferenceFragment {
         @Override
         public boolean onPreferenceChange(Preference preference, Object newValue) {
             if (preference instanceof RingtonePreference) {
-
+                RingtonePreference temp = ((RingtonePreference) preference);
+                Uri uri = Uri.parse(newValue.toString());
+                temp.setSummary(getRingtoneName(uri));
+                SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
+                sp.edit().putString("pref_key_alarm", newValue.toString()).commit();
+                onItemChanged(uri);
+            }else if (preference instanceof ListPreference) {
+                ListPreference temp = ((ListPreference) preference);
+                temp.setSummary(newValue.toString());
+                SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
+                sp.edit().putString("pref_key_time", newValue.toString()).commit();
+                onItemChanged(Uri.parse(newValue.toString()));
+            }else {
+                preference.setSummary(((BluetoothDevice) newValue).getAddress());
+                SharedPreferences sp = preference.getPreferenceManager().getSharedPreferences();
+                sp.edit().putString("pref_key_device", newValue.toString()).commit();
+                onItemChanged(Uri.parse(newValue.toString()));
             }
             return true;
         }
     }
+
+    private String getRingtoneName(Uri uri) {
+        Ringtone r = RingtoneManager.getRingtone(this.getActivity(), uri);
+        return r.getTitle(this.getActivity());
+    }
+
+
 
     /**
      * This interface must be implemented by activities that contain this

@@ -84,7 +84,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         }
 
         FragmentTransaction fmTrans = getFragmentManager().beginTransaction();
-        fmTrans.add(SetupFragment.newInstance(),SetupFragment.TAG);
+        fmTrans.replace(android.R.id.content, SetupFragment.newInstance(),SetupFragment.TAG);
         fmTrans.addToBackStack(null);
         fmTrans.commit();
 
