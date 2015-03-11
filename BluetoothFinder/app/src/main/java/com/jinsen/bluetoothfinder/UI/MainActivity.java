@@ -137,7 +137,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     }
 
     @Override
-    public void onFragmentInteraction(Uri uri) {
+    public void onItemChanged(Uri uri) {
 
     }
 }

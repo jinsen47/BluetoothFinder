@@ -4,7 +4,10 @@ import android.app.Activity;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.preference.ListPreference;
+import android.preference.Preference;
 import android.preference.PreferenceFragment;
+import android.preference.RingtonePreference;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +24,11 @@ import com.jinsen.bluetoothfinder.R;
  */
 public class SetupFragment extends PreferenceFragment {
     public static final String TAG = "SetupFragment";
+
+    private RingtonePreference mRingtone;
+    private ListPreference mTime;
+    private Preference mDevice;
+
     // TODO: Rename parameter arguments, choose names that match
 
     private OnFragmentInteractionListener mListener;
@@ -50,11 +58,21 @@ public class SetupFragment extends PreferenceFragment {
 //        }
     }
 
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+        mRingtone = ((RingtonePreference) findPreference("pref_key_alarm"));
+        mDevice = findPreference("pref_key_device");
+        mTime = ((ListPreference) findPreference("pref_key_time"));
+
+//        mRingtone.setOnPreferenceChangeListener();
+    }
 
     // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
+    public void onItemChanged (Uri uri) {
         if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
+            mListener.onItemChanged(uri);
         }
     }
 
@@ -75,6 +93,16 @@ public class SetupFragment extends PreferenceFragment {
         mListener = null;
     }
 
+    public class SetupChangeListener implements Preference.OnPreferenceChangeListener {
+        @Override
+        public boolean onPreferenceChange(Preference preference, Object newValue) {
+            if (preference instanceof RingtonePreference) {
+
+            }
+            return true;
+        }
+    }
+
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
@@ -87,7 +115,7 @@ public class SetupFragment extends PreferenceFragment {
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onFragmentInteraction(Uri uri);
+        public void onItemChanged(Uri uri);
     }
 
 }
