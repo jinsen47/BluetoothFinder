@@ -4,6 +4,7 @@ import android.app.ActionBar;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Handler;
@@ -45,7 +46,10 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
     // Intent request codes
     public static final int REQUEST_CONNECT_DEVICE = 1;
-    private static final int REQUEST_ENABLE_BT = 2;
+    public static final int REQUEST_ENABLE_BT = 2;
+
+    // Loop message
+    public static final String LOOP_MESSAGE = "BluetoothFinder";
 
     //Toast Text
     private static final String BT_INVALID = "蓝牙不可用";
@@ -54,7 +58,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     private String time = null;
     private String alarm = null;
 
-    //Layout views
+    // Layout views
     private ImageButton mSendButton;
     private ActionBar mTitle = null;
 
@@ -66,6 +70,9 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     private BluetoothAdapter mBluetoothAdapter = null;
     // Member object for the chat services
     private BluetoothChatService mChatService = null;
+    // Handler
+//    private Handler mHandler = null;
+
 
 
     @Override
@@ -75,8 +82,11 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
         setContentView(R.layout.activity_main);
 
-        //Request Bluetooth
+        // Request Bluetooth
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        // Intiate myHandler
+//        mHandler = new Handler();
 
         if (mBluetoothAdapter == null) {
             showText(BT_INVALID);
@@ -107,6 +117,44 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         }
     }
 
+    @Override
+    public synchronized void onResume() {
+        super.onResume();
+        if(D) Log.e(TAG, "+ ON RESUME +");
+
+        // Performing this check in onResume() covers the case in which BT was
+        // not enabled during onStart(), so we were paused to enable it...
+        // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
+        if (mChatService != null) {
+            // Only if the state is STATE_NONE, do we know that we haven't started already
+            if (mChatService.getState() == BluetoothChatService.STATE_NONE) {
+                // Start the Bluetooth chat services
+                mChatService.start();
+            }
+        }
+    }
+
+    @Override
+    public synchronized void onPause() {
+        super.onPause();
+        if(D) Log.e(TAG, "- ON PAUSE -");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if(D) Log.e(TAG, "-- ON STOP --");
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // Stop the Bluetooth chat services
+        if (mChatService != null) mChatService.stop();
+        if(D) Log.e(TAG, "--- ON DESTROY ---");
+    }
+
+
     private void setupFinder() {
         // Initiate send button
         mSendButton = ((ImageButton) findViewById(R.id.sendButton));
@@ -131,7 +179,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     }
 
     // The Handler that gets information back from the BluetoothChatService
-    private final Handler mHandler = new Handler() {
+    private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -154,11 +202,13 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                     byte[] writeBuf = (byte[]) msg.obj;
                     // construct a string from the buffer
                     String writeMessage = new String(writeBuf);
+                    showText("writeMessage: " + writeMessage);
                     break;
                 case MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
+                    showText("readMessage " + readMessage);
                     break;
                 case MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -169,10 +219,6 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                 case MESSAGE_TOAST:
                     Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                             Toast.LENGTH_SHORT).show();
-                    break;
-                default:
-                    showText("Message cannot be parsed");
-                    Log.e(TAG, msg.toString());
                     break;
             }
         }
@@ -213,11 +259,21 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         String tempTime = bundle.getString(SetupFragment.KEY_TIME);
 
         if (tempAlarm != null) alarm = tempAlarm;
-//        if (tempDevice != null)
+        if (tempDevice != null) {
+            BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(tempDevice);
+            mChatService.connect(device);
+        }
         if (tempTime != null) time = tempTime;
     }
 
     private void startFinder() {
-
+        // Check that we're actually connected before trying anything
+        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+            Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
+            return;
+        }
+            // Get the message bytes and tell the BluetoothChatService to write
+            byte[] send = LOOP_MESSAGE.getBytes();
+            mChatService.write(send);
     }
 }
