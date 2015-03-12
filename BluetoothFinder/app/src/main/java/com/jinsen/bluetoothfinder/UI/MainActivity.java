@@ -1,16 +1,20 @@
 package com.jinsen.bluetoothfinder.UI;
 
+import android.app.ActionBar;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Message;
 import android.preference.PreferenceFragment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -52,11 +56,10 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
     //Layout views
     private ImageButton mSendButton;
+    private ActionBar mTitle = null;
 
     // Name of the connected device
     private String mConnectedDeviceName = null;
-    // Array adapter for the conversation thread
-    private ArrayAdapter<String> mConversationArrayAdapter;
     // String buffer for outgoing messages
     private StringBuffer mOutStringBuffer;
     // Local Bluetooth adapter
@@ -71,10 +74,6 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         if(D) Log.e(TAG, "+++ ON CREATE +++");
 
         setContentView(R.layout.activity_main);
-
-        //Get views' reference
-
-        mSendButton = ((ImageButton) findViewById(R.id.sendButton));
 
         //Request Bluetooth
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -109,8 +108,77 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     }
 
     private void setupFinder() {
+        // Initiate send button
+        mSendButton = ((ImageButton) findViewById(R.id.sendButton));
+        mSendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startFinder();
 
+                //Button pressed animation
+//                mSendButton.set
+            }
+        });
+
+        //Initiate ActionBar
+        mTitle = getActionBar();
+
+        // Initialize the BluetoothChatService to perform bluetooth connections
+        mChatService = new BluetoothChatService(this, mHandler);
+
+        // Initialize the buffer for outgoing messages
+        mOutStringBuffer = new StringBuffer("");
     }
+
+    // The Handler that gets information back from the BluetoothChatService
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MESSAGE_STATE_CHANGE:
+                    if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
+                    switch (msg.arg1) {
+                        case BluetoothChatService.STATE_CONNECTED:
+                            mTitle.setTitle(R.string.title_connected_to + mConnectedDeviceName);
+                            break;
+                        case BluetoothChatService.STATE_CONNECTING:
+                            mTitle.setTitle(R.string.title_connecting);
+                            break;
+                        case BluetoothChatService.STATE_LISTEN:
+                        case BluetoothChatService.STATE_NONE:
+                            mTitle.setTitle(R.string.title_not_connected);
+                            break;
+                    }
+                    break;
+                case MESSAGE_WRITE:
+                    byte[] writeBuf = (byte[]) msg.obj;
+                    // construct a string from the buffer
+                    String writeMessage = new String(writeBuf);
+                    break;
+                case MESSAGE_READ:
+                    byte[] readBuf = (byte[]) msg.obj;
+                    // construct a string from the valid bytes in the buffer
+                    String readMessage = new String(readBuf, 0, msg.arg1);
+                    break;
+                case MESSAGE_DEVICE_NAME:
+                    // save the connected device's name
+                    mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
+                    Toast.makeText(getApplicationContext(), "Connected to "
+                            + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                    break;
+                case MESSAGE_TOAST:
+                    Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
+                            Toast.LENGTH_SHORT).show();
+                    break;
+                default:
+                    showText("Message cannot be parsed");
+                    Log.e(TAG, msg.toString());
+                    break;
+            }
+        }
+    };
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -149,4 +217,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         if (tempTime != null) time = tempTime;
     }
 
+    private void startFinder() {
+
+    }
 }
