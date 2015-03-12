@@ -91,6 +91,16 @@ public class SetupFragment extends PreferenceFragment {
                 return true;
             }
         });
+
+        // Load cache
+        SharedPreferences sp = getPreferenceManager().getSharedPreferences();
+        mRingtone.setSummary(sp.getString(KEY_ALARM, ""));
+        mDevice.setSummary(sp.getString(KEY_DEVICE, ""));
+        String tempString = sp.getString(KEY_TIME, null);
+        if (tempString != null) {
+            int realTime = (Integer.valueOf(tempString).intValue() + 1) * 5;
+            mTime.setSummary(realTime + "");
+        }
     }
 
     @Override
@@ -158,6 +168,7 @@ public class SetupFragment extends PreferenceFragment {
             }else if (preference instanceof ListPreference) {
                 ListPreference temp = ((ListPreference) preference);
 
+                // preferences may be changed auto-ly after modified, these code dont work
                 SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
                 int realtime = ((Integer.valueOf(newValue.toString()).intValue()) + 1 ) * 5;
                 sp.edit().putString(KEY_TIME, realtime + "").commit();
