@@ -25,7 +25,7 @@ import java.util.Set;
 public class MainActivity extends ActionBarActivity implements SetupFragment.OnFragmentInteractionListener{
 
     // Debugging
-    private static final String TAG = "BluetoothChat";
+    private static final String TAG = "MainActivity";
     private static final boolean D = true;
 
     // Message types sent from the BluetoothChatService Handler
@@ -40,15 +40,17 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     public static final String TOAST = "toast";
 
     // Intent request codes
-    private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
-    private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
-    private static final int REQUEST_ENABLE_BT = 3;
+    public static final int REQUEST_CONNECT_DEVICE = 1;
+    private static final int REQUEST_ENABLE_BT = 2;
 
     //Toast Text
     private static final String BT_INVALID = "蓝牙不可用";
 
-    // Layout Views
-    private ListView mListView;
+    // Setup Paramaters
+    private String time = null;
+    private String alarm = null;
+
+    //Layout views
     private ImageButton mSendButton;
 
     // Name of the connected device
@@ -84,7 +86,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         }
 
         FragmentTransaction fmTrans = getFragmentManager().beginTransaction();
-        fmTrans.replace(android.R.id.content, SetupFragment.newInstance(),SetupFragment.TAG);
+        fmTrans.replace(android.R.id.content, SetupFragment.newInstance(), SetupFragment.TAG);
         fmTrans.addToBackStack(null);
         fmTrans.commit();
 
@@ -137,7 +139,14 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     }
 
     @Override
-    public void onItemChanged(Uri uri) {
+    public void onItemChanged(Bundle bundle) {
+        String tempAlarm = bundle.getString(SetupFragment.KEY_ALARM);
+        String tempDevice = bundle.getString(SetupFragment.KEY_DEVICE);
+        String tempTime = bundle.getString(SetupFragment.KEY_TIME);
 
+        if (tempAlarm != null) alarm = tempAlarm;
+//        if (tempDevice != null)
+        if (tempTime != null) time = tempTime;
     }
+
 }

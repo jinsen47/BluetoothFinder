@@ -2,6 +2,7 @@ package com.jinsen.bluetoothfinder.UI;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -12,6 +13,7 @@ import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.RingtonePreference;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,9 +31,15 @@ import com.jinsen.bluetoothfinder.R;
 public class SetupFragment extends PreferenceFragment {
     public static final String TAG = "SetupFragment";
 
+    //Preference Keys
+    public static final String KEY_ALARM = "pref_key_alarm";
+    public static final String KEY_TIME = "pref_key_time";
+    public static final String KEY_DEVICE = "pref_key_device";
+
     private RingtonePreference mRingtone;
     private ListPreference mTime;
     private Preference mDevice;
+
 
     // TODO: Rename parameter arguments, choose names that match
 
@@ -66,21 +74,50 @@ public class SetupFragment extends PreferenceFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        mRingtone = ((RingtonePreference) findPreference("pref_key_alarm"));
-        mDevice = findPreference("pref_key_device");
-        mTime = ((ListPreference) findPreference("pref_key_time"));
+        mRingtone = ((RingtonePreference) findPreference(KEY_ALARM));
+        mDevice = findPreference(KEY_DEVICE);
+        mTime = ((ListPreference) findPreference(KEY_TIME));
 
         mRingtone.setOnPreferenceChangeListener(new SetupChangeListener());
         mDevice.setOnPreferenceChangeListener(new SetupChangeListener());
         mTime.setOnPreferenceChangeListener(new SetupChangeListener());
 
-//        mRingtone.setOnPreferenceChangeListener();
+        mDevice.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(Preference preference) {
+                Intent intent = new Intent();
+                intent.setClass(getActivity(), DeviceListActivity.class);
+                startActivityForResult(intent, MainActivity.REQUEST_CONNECT_DEVICE);
+                return true;
+            }
+        });
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == MainActivity.REQUEST_CONNECT_DEVICE){
+            // When DeviceListActivity returns with a device to connect
+            if (resultCode == Activity.RESULT_OK) {
+                // Get the device MAC address
+                String address = data.getExtras()
+                        .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+                mDevice.setSummary(address);
+                //Set back a bundle to MainActivity
+                Bundle bundle = new Bundle();
+                bundle.putString(KEY_DEVICE, address);
+                onItemChanged(bundle);
+
+                SharedPreferences sp = mDevice.getPreferenceManager().getSharedPreferences();
+                sp.edit().putString(KEY_DEVICE, address).commit();
+            } else Log.e("DeviceList", resultCode + "");
+        }
     }
 
     // TODO: Rename method, update argument and hook method into UI event
-    public void onItemChanged (Uri uri) {
+    public void onItemChanged (Bundle bundle) {
         if (mListener != null) {
-            mListener.onItemChanged(uri);
+            mListener.onItemChanged(bundle);
         }
     }
 
@@ -109,21 +146,36 @@ public class SetupFragment extends PreferenceFragment {
                 Uri uri = Uri.parse(newValue.toString());
                 temp.setSummary(getRingtoneName(uri));
                 SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
-                sp.edit().putString("pref_key_alarm", newValue.toString()).commit();
-                onItemChanged(uri);
+                sp.edit().putString(KEY_ALARM, newValue.toString()).commit();
+
+                Bundle bundle = new Bundle();
+                bundle.putString(KEY_ALARM, newValue.toString());
+                onItemChanged(bundle);
+
+                Log.d("SetupFragment:uri=", uri.toString());
+                return true;
+
             }else if (preference instanceof ListPreference) {
                 ListPreference temp = ((ListPreference) preference);
                 temp.setSummary(newValue.toString());
                 SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
-                sp.edit().putString("pref_key_time", newValue.toString()).commit();
-                onItemChanged(Uri.parse(newValue.toString()));
+                int realtime = ((Integer.valueOf(newValue.toString()).intValue()) + 1 ) * 5;
+                sp.edit().putString(KEY_TIME, realtime + "").commit();
+
+                Log.d("SetupFragment:time=", newValue.toString());
+
+                Bundle bundle = new Bundle();
+                bundle.putString(KEY_TIME, realtime + "");
+                onItemChanged(bundle);
+
+                return true;
             }else {
-                preference.setSummary(((BluetoothDevice) newValue).getAddress());
-                SharedPreferences sp = preference.getPreferenceManager().getSharedPreferences();
-                sp.edit().putString("pref_key_device", newValue.toString()).commit();
-                onItemChanged(Uri.parse(newValue.toString()));
+//                preference.setSummary(((BluetoothDevice) newValue).getAddress());
+//                SharedPreferences sp = preference.getPreferenceManager().getSharedPreferences();
+//                sp.edit().putString("pref_key_device", newValue.toString()).commit();
+//                onItemChanged(Uri.parse(newValue.toString()));
+                  return true;
             }
-            return true;
         }
     }
 
@@ -146,7 +198,9 @@ public class SetupFragment extends PreferenceFragment {
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onItemChanged(Uri uri);
+        public void onItemChanged(Bundle bundle);
     }
-
+//        public void startActivityForResult(Intent intent) {
+//
+//        }
 }
