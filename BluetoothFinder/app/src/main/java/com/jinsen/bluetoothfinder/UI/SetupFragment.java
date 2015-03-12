@@ -157,10 +157,11 @@ public class SetupFragment extends PreferenceFragment {
 
             }else if (preference instanceof ListPreference) {
                 ListPreference temp = ((ListPreference) preference);
-                temp.setSummary(newValue.toString());
+
                 SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
                 int realtime = ((Integer.valueOf(newValue.toString()).intValue()) + 1 ) * 5;
                 sp.edit().putString(KEY_TIME, realtime + "").commit();
+                temp.setSummary(realtime + "");
 
                 Log.d("SetupFragment:time=", newValue.toString());
 

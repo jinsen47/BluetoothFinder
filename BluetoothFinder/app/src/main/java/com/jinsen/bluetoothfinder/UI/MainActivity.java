@@ -82,6 +82,9 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
         setContentView(R.layout.activity_main);
 
+        //Initiate ActionBar
+        mTitle = getActionBar();
+
         // Request Bluetooth
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -95,7 +98,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         }
 
         FragmentTransaction fmTrans = getFragmentManager().beginTransaction();
-        fmTrans.replace(android.R.id.content, SetupFragment.newInstance(), SetupFragment.TAG);
+        fmTrans.replace(R.id.frame, SetupFragment.newInstance(), SetupFragment.TAG);
         fmTrans.addToBackStack(null);
         fmTrans.commit();
 
@@ -156,6 +159,8 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
 
     private void setupFinder() {
+        Log.d(TAG, "setupFinder");
+
         // Initiate send button
         mSendButton = ((ImageButton) findViewById(R.id.sendButton));
         mSendButton.setOnClickListener(new View.OnClickListener() {
@@ -167,10 +172,6 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 //                mSendButton.set
             }
         });
-
-        //Initiate ActionBar
-        mTitle = getActionBar();
-
         // Initialize the BluetoothChatService to perform bluetooth connections
         mChatService = new BluetoothChatService(this, mHandler);
 
@@ -179,7 +180,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     }
 
     // The Handler that gets information back from the BluetoothChatService
-    private Handler mHandler = new Handler() {
+    private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -187,14 +188,15 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                     if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
-                            mTitle.setTitle(R.string.title_connected_to + mConnectedDeviceName);
+//                            mTitle.setTitle("连接至");
+//                            mTitle.setSubtitle(mConnectedDeviceName);
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
-                            mTitle.setTitle(R.string.title_connecting);
+//                            mTitle.setTitle("正在连接");
                             break;
                         case BluetoothChatService.STATE_LISTEN:
                         case BluetoothChatService.STATE_NONE:
-                            mTitle.setTitle(R.string.title_not_connected);
+//                            mTitle.setTitle("未连接");
                             break;
                     }
                     break;
@@ -270,6 +272,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         // Check that we're actually connected before trying anything
         if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
             Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
+//            showText("还未连接到设备");
             return;
         }
             // Get the message bytes and tell the BluetoothChatService to write
