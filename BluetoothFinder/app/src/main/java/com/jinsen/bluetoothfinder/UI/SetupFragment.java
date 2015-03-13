@@ -96,8 +96,8 @@ public class SetupFragment extends PreferenceFragment {
         SharedPreferences sp = getPreferenceManager().getSharedPreferences();
         mRingtone.setSummary(sp.getString(KEY_ALARM, ""));
         mDevice.setSummary(sp.getString(KEY_DEVICE, ""));
-        String tempString = sp.getString(KEY_TIME, null);
-        if (tempString != null) {
+        String tempString = sp.getString(KEY_TIME, "false");
+        if (!tempString.equals("false")) {
             int realTime = (Integer.valueOf(tempString).intValue() + 1) * 5;
             mTime.setSummary(realTime + "");
         }

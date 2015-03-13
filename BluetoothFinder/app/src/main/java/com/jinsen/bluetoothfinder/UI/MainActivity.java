@@ -43,7 +43,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     public static final int MESSAGE_TOAST = 5;
 
     // Message types sent from the Counter
-    public static final int COUNTER_TIMEOUT = 6;
+//    public static final int COUNTER_TIMEOUT = 6;
 //    public static final int MESSAGE_
 
     // Key names received from the BluetoothChatService Handler
@@ -78,6 +78,8 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     private BluetoothChatService mChatService = null;
     // Member object for the counter
     private Counter mCounter = null;
+
+    private MediaPlayer mPlayer = null;
 
 
     @Override
@@ -151,6 +153,9 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     @Override
     public synchronized void onPause() {
         super.onPause();
+        if (mPlayer != null) {
+            if (mPlayer.isPlaying()) mPlayer.stop();
+        }
         if(D) Log.e(TAG, "- ON PAUSE -");
     }
 
@@ -215,13 +220,18 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                         case BluetoothChatService.STATE_NONE:
 //                            mTitle.setTitle("未连接");
                             break;
+                        case Counter.COUNTER_TIME_OUT:
+                            playAlarm();
+                            if (D) showText("计时器超时！");
+                            Log.d(TAG,"Counter timeout");
+                            break;
                     }
                     break;
                 case MESSAGE_WRITE:
                     byte[] writeBuf = (byte[]) msg.obj;
                     // construct a string from the buffer
                     String writeMessage = new String(writeBuf);
-                    showText("writeMessage: " + writeMessage);
+                    if (D) showText("writeMessage: " + writeMessage);
                     break;
                 case MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
@@ -240,8 +250,6 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                     Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                             Toast.LENGTH_SHORT).show();
                     break;
-                case COUNTER_TIMEOUT:
-                    playAlarm();
 
             }
         }
@@ -309,7 +317,8 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     }
 
     private void playAlarm() {
-        MediaPlayer mp = new MediaPlayer();
-//        mp.
+        Log.d(TAG, "Alarm:" + alarm);
+        mPlayer = MediaPlayer.create(this, Uri.parse(alarm));
+        mPlayer.start();
     }
 }

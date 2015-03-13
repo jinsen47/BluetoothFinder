@@ -33,6 +33,7 @@ public class Counter {
     public void start(int time) {
         setState(State.COUNTING);
         CounterThread mCounterThread = new CounterThread(time);
+        mCounterThread.start();
     }
 
     public synchronized void setState(State state) {
@@ -50,7 +51,7 @@ public class Counter {
             try {
                 sleep(time * 1000);
                 if (state != Counter.State.NONE) {
-                    mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, COUNTER_TIME_OUT, -1);
+                    mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, COUNTER_TIME_OUT, -1).sendToTarget();
                 }
                 setState(Counter.State.NONE);
 
