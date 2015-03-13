@@ -20,7 +20,7 @@ public class Counter {
 
     //State
     public enum State {NONE,COUNTING}
-    public volatile State state;
+    public State state;
 
     // Private data segment
     private final Handler mHandler;
@@ -50,6 +50,7 @@ public class Counter {
             Log.d(TAG, "Begin counter");
             try {
                 sleep(time * 1000);
+                Log.d(TAG, "CounterState: " + state.toString());
                 if (state != Counter.State.NONE) {
                     mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, COUNTER_TIME_OUT, -1).sendToTarget();
                 }

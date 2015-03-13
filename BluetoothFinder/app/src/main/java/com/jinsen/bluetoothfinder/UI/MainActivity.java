@@ -77,7 +77,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     // Member object for the chat services
     private BluetoothChatService mChatService = null;
     // Member object for the counter
-    private Counter mCounter = null;
+//    private Counter mCounter = null;
 
     private MediaPlayer mPlayer = null;
 
@@ -124,7 +124,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
             // Otherwise, setup the chat session
         } else {
             if (mChatService == null) setupFinder();
-            if (mCounter == null) setupCounter();
+//            if (mCounter == null) setupCounter();
         }
     }
 
@@ -144,9 +144,9 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
             }
         }
         // In case there is a counter clicking
-        if (mCounter != null) {
-            if (mCounter.state != Counter.State.NONE) mCounter.state = Counter.State.NONE;
-        }
+//        if (mCounter != null) {
+//            if (mCounter.state != Counter.State.NONE) mCounter.state = Counter.State.NONE;
+//        }
 
     }
 
@@ -170,7 +170,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         super.onDestroy();
         // Stop the Bluetooth chat services
         if (mChatService != null) mChatService.stop();
-        if (mCounter != null) mCounter.state = Counter.State.NONE;
+//        if (mCounter != null) mCounter.state = Counter.State.NONE;
         if(D) Log.e(TAG, "--- ON DESTROY ---");
     }
 
@@ -198,7 +198,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
     private void setupCounter() {
         Log.d(TAG, "setupCounter");
-        mCounter = new Counter(this, mHandler);
+//        mCounter = new Counter(this, mHandler);
     }
 
     // The Handler that gets information back from the BluetoothChatService
@@ -220,10 +220,15 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                         case BluetoothChatService.STATE_NONE:
 //                            mTitle.setTitle("未连接");
                             break;
-                        case Counter.COUNTER_TIME_OUT:
+//                        case Counter.COUNTER_TIME_OUT:
+//                            playAlarm();
+//                            if (D) showText("计时器超时！");
+//                            Log.d(TAG,"Counter timeout");
+//                            mSendButton.setClickable(true);
+//                            break;
+                        case BluetoothChatService.STATE_LOST:
                             playAlarm();
-                            if (D) showText("计时器超时！");
-                            Log.d(TAG,"Counter timeout");
+                            mSendButton.setClickable(true);
                             break;
                     }
                     break;
@@ -232,13 +237,17 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                     // construct a string from the buffer
                     String writeMessage = new String(writeBuf);
                     if (D) showText("writeMessage: " + writeMessage);
+                    Log.d(TAG, writeMessage);
                     break;
                 case MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
                     if (D) showText("readMessage " + readMessage);
-                    mCounter.setState(Counter.State.NONE);
+                    Log.d(TAG, readMessage);
+//                    mCounter.setState(Counter.State.NONE);
+//                    if (mPlayer != null) mPlayer.stop();
+//                    startFinder();
                     break;
                 case MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -305,13 +314,13 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
             return;
         }
         // Get the message bytes and tell the BluetoothChatService to write
-        byte[] send = LOOP_MESSAGE.getBytes();
-        mChatService.write(send);
-        if (time != null) {
-            mCounter.start(Integer.valueOf(time));
-        } else {
-            showText("请选择报警时间");
-        }
+//        byte[] send = LOOP_MESSAGE.getBytes();
+//        mChatService.write(send);
+//        if (time != null) {
+//            mCounter.start(Integer.valueOf(time));
+//        } else {
+//            showText("请选择报警时间");
+//        }
         mSendButton.setClickable(false);
 
     }
@@ -319,6 +328,14 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     private void playAlarm() {
         Log.d(TAG, "Alarm:" + alarm);
         mPlayer = MediaPlayer.create(this, Uri.parse(alarm));
-        mPlayer.start();
+        mPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(MediaPlayer mp) {
+                mPlayer.start();
+            }
+        });
+//        mPlayer.setLooping(true);
+//        mPlayer.prepareAsync();
+//        mPlayer.setOnCompletionListener();
     }
 }
