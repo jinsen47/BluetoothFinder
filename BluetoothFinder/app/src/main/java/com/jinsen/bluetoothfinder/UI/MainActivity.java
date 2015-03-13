@@ -6,6 +6,7 @@ import android.app.FragmentTransaction;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
@@ -23,6 +24,7 @@ import android.widget.Toast;
 
 import com.jinsen.bluetoothfinder.Service.BluetoothChatService;
 import com.jinsen.bluetoothfinder.R;
+import com.jinsen.bluetoothfinder.Service.Counter;
 
 import java.util.Set;
 
@@ -39,6 +41,10 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
+
+    // Message types sent from the Counter
+    public static final int COUNTER_TIMEOUT = 6;
+//    public static final int MESSAGE_
 
     // Key names received from the BluetoothChatService Handler
     public static final String DEVICE_NAME = "device_name";
@@ -70,9 +76,8 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     private BluetoothAdapter mBluetoothAdapter = null;
     // Member object for the chat services
     private BluetoothChatService mChatService = null;
-    // Handler
-//    private Handler mHandler = null;
-
+    // Member object for the counter
+    private Counter mCounter = null;
 
 
     @Override
@@ -117,6 +122,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
             // Otherwise, setup the chat session
         } else {
             if (mChatService == null) setupFinder();
+            if (mCounter == null) setupCounter();
         }
     }
 
@@ -135,6 +141,11 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                 mChatService.start();
             }
         }
+        // In case there is a counter clicking
+        if (mCounter != null) {
+            if (mCounter.state != Counter.State.NONE) mCounter.state = Counter.State.NONE;
+        }
+
     }
 
     @Override
@@ -154,6 +165,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         super.onDestroy();
         // Stop the Bluetooth chat services
         if (mChatService != null) mChatService.stop();
+        if (mCounter != null) mCounter.state = Counter.State.NONE;
         if(D) Log.e(TAG, "--- ON DESTROY ---");
     }
 
@@ -176,7 +188,12 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         mChatService = new BluetoothChatService(this, mHandler);
 
         // Initialize the buffer for outgoing messages
-        mOutStringBuffer = new StringBuffer("");
+//        mOutStringBuffer = new StringBuffer("");
+    }
+
+    private void setupCounter() {
+        Log.d(TAG, "setupCounter");
+        mCounter = new Counter(this, mHandler);
     }
 
     // The Handler that gets information back from the BluetoothChatService
@@ -210,7 +227,8 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    showText("readMessage " + readMessage);
+                    if (D) showText("readMessage " + readMessage);
+                    mCounter.setState(Counter.State.NONE);
                     break;
                 case MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -222,6 +240,9 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                     Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                             Toast.LENGTH_SHORT).show();
                     break;
+                case COUNTER_TIMEOUT:
+                    playAlarm();
+
             }
         }
     };
@@ -275,8 +296,20 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 //            showText("还未连接到设备");
             return;
         }
-            // Get the message bytes and tell the BluetoothChatService to write
-            byte[] send = LOOP_MESSAGE.getBytes();
-            mChatService.write(send);
+        // Get the message bytes and tell the BluetoothChatService to write
+        byte[] send = LOOP_MESSAGE.getBytes();
+        mChatService.write(send);
+        if (time != null) {
+            mCounter.start(Integer.valueOf(time));
+        } else {
+            showText("请选择报警时间");
+        }
+        mSendButton.setClickable(false);
+
+    }
+
+    private void playAlarm() {
+        MediaPlayer mp = new MediaPlayer();
+//        mp.
     }
 }
