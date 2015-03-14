@@ -1,7 +1,6 @@
 package com.jinsen.bluetoothfinder.UI;
 
 import android.app.ActionBar;
-import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -10,23 +9,17 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
-import android.preference.PreferenceFragment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import com.jinsen.bluetoothfinder.Service.BluetoothChatService;
 import com.jinsen.bluetoothfinder.R;
-import com.jinsen.bluetoothfinder.Service.Counter;
-
-import java.util.Set;
 
 
 public class MainActivity extends ActionBarActivity implements SetupFragment.OnFragmentInteractionListener{
