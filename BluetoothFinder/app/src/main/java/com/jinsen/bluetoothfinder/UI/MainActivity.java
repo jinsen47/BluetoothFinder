@@ -12,6 +12,7 @@ import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -20,6 +21,9 @@ import android.widget.Toast;
 
 import com.jinsen.bluetoothfinder.Service.BluetoothChatService;
 import com.jinsen.bluetoothfinder.R;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class MainActivity extends ActionBarActivity implements SetupFragment.OnFragmentInteractionListener{
@@ -65,6 +69,9 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     private BluetoothChatService mChatService = null;
     // Player to play the alarm
     private MediaPlayer mPlayer = null;
+
+    private static Boolean isQuit = false;
+    private Timer mQuitTimer = new Timer();
 
 
     @Override
@@ -245,6 +252,28 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (isQuit == false) {
+                isQuit = true;
+                showText("再按一次退出");
+                TimerTask task = null;
+                task = new TimerTask() {
+                    @Override
+                    public void run() {
+                        isQuit = false;
+                    }
+                };
+                mQuitTimer.schedule(task, 2000);
+            } else {
+                finish();
+            }
+
+        }
+        return true;
     }
 
     private void showText(String string) {
