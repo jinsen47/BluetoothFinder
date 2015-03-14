@@ -221,7 +221,7 @@ public class BluetoothChatService {
 //        bundle.putString(MainActivity.TOAST, "Device connection was lost");
 //        msg.setData(bundle);
 //        mHandler.sendMessage(msg);
-        mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, STATE_LOST, -1);
+        mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, STATE_LOST, -1).sendToTarget();
     }
 
     /**
