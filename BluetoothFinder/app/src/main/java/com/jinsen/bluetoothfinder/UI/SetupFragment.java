@@ -94,13 +94,21 @@ public class SetupFragment extends PreferenceFragment {
 
         // Load cache
         SharedPreferences sp = getPreferenceManager().getSharedPreferences();
-        mRingtone.setSummary(sp.getString(KEY_ALARM, ""));
-        mDevice.setSummary(sp.getString(KEY_DEVICE, ""));
+        String cacheAlarm = sp.getString(KEY_ALARM, "");
+        String cacheDevice = sp.getString(KEY_DEVICE, "");
+        int cacheTime = 5;
+        mRingtone.setSummary(cacheAlarm);
+        mDevice.setSummary(cacheDevice);
         String tempString = sp.getString(KEY_TIME, "false");
         if (!tempString.equals("false")) {
             int realTime = (Integer.valueOf(tempString).intValue() + 1) * 5;
             mTime.setSummary(realTime + "");
         }
+        Bundle bundle = new Bundle();
+//        bundle.putString(KEY_DEVICE, cacheDevice);
+        bundle.putString(KEY_ALARM, cacheAlarm);
+        bundle.putInt(KEY_TIME, cacheTime);
+//        onItemChanged(bundle);
     }
 
     @Override
@@ -116,7 +124,7 @@ public class SetupFragment extends PreferenceFragment {
                 //Set back a bundle to MainActivity
                 Bundle bundle = new Bundle();
                 bundle.putString(KEY_DEVICE, address);
-                onItemChanged(bundle);
+                this.onItemChanged(bundle);
 
                 SharedPreferences sp = mDevice.getPreferenceManager().getSharedPreferences();
                 sp.edit().putString(KEY_DEVICE, address).commit();
@@ -171,7 +179,7 @@ public class SetupFragment extends PreferenceFragment {
                 // preferences may be changed auto-ly after modified, these code dont work
                 SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
                 int realtime = ((Integer.valueOf(newValue.toString()).intValue()) + 1 ) * 5;
-                sp.edit().putString(KEY_TIME, realtime + "").commit();
+                sp.edit().putString(KEY_TIME, newValue.toString()).commit();
                 temp.setSummary(realtime + "");
 
                 Log.d("SetupFragment:time=", newValue.toString());
