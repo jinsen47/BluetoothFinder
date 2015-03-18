@@ -197,6 +197,9 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                         case BluetoothChatService.STATE_CONNECTED:
 //                            mTitle.setTitle("连接至");
 //                            mTitle.setSubtitle(mConnectedDeviceName);
+                            if (mPlayer != null){
+                                if (mPlayer.isPlaying()) mPlayer.stop();
+                            }
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
 //                            mTitle.setTitle("正在连接");
@@ -328,6 +331,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                 mPlayer.start();
             }
         });
+        mPlayer.setLooping(true);
     }
 
     private void waitFinder() {
