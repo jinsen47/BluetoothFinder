@@ -4,7 +4,10 @@ import android.app.ActionBar;
 import android.app.FragmentTransaction;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
@@ -56,6 +59,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     // Setup Paramaters
     private String time = null;
     private String alarm = null;
+    public String remoteDevice = null;
 
     // Layout views
     private ImageButton mSendButton;
@@ -97,6 +101,14 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         fmTrans.replace(R.id.frame, SetupFragment.newInstance(), SetupFragment.TAG);
         fmTrans.addToBackStack(null);
         fmTrans.commit();
+
+        // Register for broadcasts when a device is discovered
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        this.registerReceiver(mReceiver, filter);
+
+        // Register for broadcasts when discovery has finished
+        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        this.registerReceiver(mReceiver, filter);
 
     }
 
@@ -198,6 +210,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                             mSendButton.setClickable(true);
                             Log.d(TAG, "Device is lost!");
                             showText("设备丢失！");
+                            waitFinder();
                             break;
                     }
                     break;
@@ -288,6 +301,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
         if (tempAlarm != null) alarm = tempAlarm;
         if (tempDevice != null) {
+            remoteDevice = tempDevice;
             BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(tempDevice);
             mChatService.connect(device);
         }
@@ -315,4 +329,36 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
             }
         });
     }
+
+    private void waitFinder() {
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mBluetoothAdapter.cancelDiscovery();
+                Log.i(TAG, "Start to find the lost finder for 30s");
+            }
+        }, 30*1000);
+        mBluetoothAdapter.startDiscovery();
+    }
+
+    // The BroadcastReceiver that listens for discovered devices and
+    // changes the title when discovery is finished
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+
+            // When discovery finds a device
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                // Get the BluetoothDevice object from the Intent
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (device.getAddress().equals(remoteDevice)) {
+                    mChatService.connect(device);
+                }
+                // When discovery is finished, change the Activity title
+            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                // I dont know what to write here, just leave it now.
+                }
+            }
+        };
 }
