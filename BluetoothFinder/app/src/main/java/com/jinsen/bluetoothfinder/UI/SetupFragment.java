@@ -108,7 +108,7 @@ public class SetupFragment extends PreferenceFragment {
 //        bundle.putString(KEY_DEVICE, cacheDevice);
         bundle.putString(KEY_ALARM, cacheAlarm);
         bundle.putInt(KEY_TIME, cacheTime);
-//        onItemChanged(bundle);
+        onStartup(bundle);
     }
 
     @Override
@@ -132,12 +132,27 @@ public class SetupFragment extends PreferenceFragment {
         }
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onItemChanged (Bundle bundle) {
+    /**
+     * Item changed, call Activity, bundle may contains alarm, time, device (one or all).
+     * @param bundle
+     *
+     */
+    public void onItemChanged(Bundle bundle) {
         if (mListener != null) {
             mListener.onItemChanged(bundle);
         }
     }
+
+    /**
+     * Startup call, notify Activity the cached alarm and time.
+     * @param bundle
+     */
+    public void onStartup(Bundle bundle) {
+        if (mListener != null) {
+            mListener.onStartup(bundle);
+        }
+    }
+
 
     @Override
     public void onAttach(Activity activity) {
@@ -219,8 +234,7 @@ public class SetupFragment extends PreferenceFragment {
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
         public void onItemChanged(Bundle bundle);
+        public void onStartup(Bundle bundle);
     }
-//        public void startActivityForResult(Intent intent) {
-//
-//        }
+
 }

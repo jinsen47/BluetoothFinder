@@ -63,6 +63,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
     // Layout views
     private ImageButton mSendButton;
+    private boolean mSendButtonState = false;
     private ActionBar mTitle = null;
 
     // Name of the connected device
@@ -174,10 +175,21 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
         // Initiate send button
         mSendButton = ((ImageButton) findViewById(R.id.sendButton));
+        mSendButton.setBackgroundColor(getResources().getColor(R.color.background_material_light));
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startFinder();
+                if(mSendButtonState) {
+                    // Running state, change to stop
+                    mSendButton.setBackgroundColor(getResources().getColor(R.color.background_floating_material_light));
+                    mSendButtonState = false;
+                    stopAlarm();
+                } else{
+                    // Stop state, change to running
+                    startFinder();
+                    mSendButton.setBackgroundColor(getResources().getColor(R.color.background_floating_material_dark));
+                    mSendButtonState = true;
+                }
 
             }
         });
@@ -197,9 +209,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                         case BluetoothChatService.STATE_CONNECTED:
 //                            mTitle.setTitle("连接至");
 //                            mTitle.setSubtitle(mConnectedDeviceName);
-                            if (mPlayer != null){
-                                if (mPlayer.isPlaying()) mPlayer.stop();
-                            }
+                            stopAlarm();
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
 //                            mTitle.setTitle("正在连接");
@@ -210,7 +220,6 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
                             break;
                         case BluetoothChatService.STATE_LOST:
                             playAlarm();
-                            mSendButton.setClickable(true);
                             Log.d(TAG, "Device is lost!");
                             showText("设备丢失！");
                             waitFinder();
@@ -311,6 +320,17 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         if (tempTime != null) time = tempTime;
     }
 
+    @Override
+    public void onStartup(Bundle bundle) {
+        String tempAlarm = bundle.getString(SetupFragment.KEY_ALARM);
+//        String tempDevice = bundle.getString(SetupFragment.KEY_DEVICE);
+        String tempTime = bundle.getString(SetupFragment.KEY_TIME);
+
+        if (tempAlarm != null) alarm = tempAlarm;
+//        if (tempDevice != null) remoteDevice = tempDevice;
+        if (tempTime != null) time = tempTime;
+    }
+
     private void startFinder() {
         // Check that we're actually connected before trying anything
         if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
@@ -318,8 +338,6 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 //            showText("还未连接到设备");
             return;
         }
-        mSendButton.setClickable(false);
-
     }
 
     private void playAlarm() {
@@ -332,6 +350,13 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
             }
         });
         mPlayer.setLooping(true);
+    }
+
+    private void stopAlarm() {
+        Log.d(TAG, "StopAlarm");
+        if (mPlayer != null) {
+            if (mPlayer.isPlaying()) mPlayer.stop();
+        }
     }
 
     private void waitFinder() {
