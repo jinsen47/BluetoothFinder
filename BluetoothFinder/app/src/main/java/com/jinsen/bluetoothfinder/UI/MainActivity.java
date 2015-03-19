@@ -175,19 +175,18 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
         // Initiate send button
         mSendButton = ((ImageButton) findViewById(R.id.sendButton));
-        mSendButton.setBackgroundColor(getResources().getColor(R.color.background_material_light));
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(mSendButtonState) {
                     // Running state, change to stop
-                    mSendButton.setBackgroundColor(getResources().getColor(R.color.background_floating_material_light));
+                    mSendButton.setAlpha(1f);
                     mSendButtonState = false;
                     stopAlarm();
                 } else{
                     // Stop state, change to running
                     startFinder();
-                    mSendButton.setBackgroundColor(getResources().getColor(R.color.background_floating_material_dark));
+                    mSendButton.setAlpha(0.8f);
                     mSendButtonState = true;
                 }
 
