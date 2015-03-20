@@ -180,12 +180,13 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
             public void onClick(View v) {
                 if(mSendButtonState) {
                     // Running state, change to stop
-                    mSendButton.setBackgroundResource(R.drawable.redbutton);
+                    mSendButton.setBackgroundResource(R.drawable.greenbutton);
                     mSendButtonState = false;
+                    Log.d(TAG, "StopAlarm");
                     stopAlarm();
                 } else{
                     // Stop state, change to running
-                    mSendButton.setBackgroundResource(R.drawable.greenbutton);
+                    mSendButton.setBackgroundResource(R.drawable.redbutton);
                     mSendButtonState = true;
                     startFinder();
                 }
