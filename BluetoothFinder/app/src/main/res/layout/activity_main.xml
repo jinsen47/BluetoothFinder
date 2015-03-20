@@ -77,7 +77,7 @@
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:id="@+id/sendButton"
-        android:background="@drawable/pressbutton"
+        android:background="@drawable/greenbutton"
         android:layout_alignParentBottom="true"/>
 
 

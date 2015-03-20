@@ -180,12 +180,12 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
             public void onClick(View v) {
                 if(mSendButtonState) {
                     // Running state, change to stop
-                    mSendButton.setAlpha(1f);
+                    mSendButton.setBackgroundResource(R.drawable.redbutton);
                     mSendButtonState = false;
                     stopAlarm();
                 } else{
                     // Stop state, change to running
-                    mSendButton.setAlpha(0.8f);
+                    mSendButton.setBackgroundResource(R.drawable.greenbutton);
                     mSendButtonState = true;
                     startFinder();
                 }
@@ -335,7 +335,7 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
             Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
 //            showText("还未连接到设备");
-            mSendButton.setAlpha(1f);
+            mSendButton.setBackgroundResource(R.drawable.greenbutton);
             mSendButtonState = false;
             return;
         }
