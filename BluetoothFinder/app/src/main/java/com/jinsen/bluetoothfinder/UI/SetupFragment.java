@@ -18,16 +18,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.jinsen.bluetoothfinder.Events.AddressMessage;
+import com.jinsen.bluetoothfinder.Events.AlarmMessage;
+import com.jinsen.bluetoothfinder.Events.StartupMessage;
+import com.jinsen.bluetoothfinder.Events.TimeMessage;
 import com.jinsen.bluetoothfinder.R;
 
-/**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link SetupFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link SetupFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import de.greenrobot.event.EventBus;
+
 public class SetupFragment extends PreferenceFragment {
     public static final String TAG = "SetupFragment";
 
@@ -39,11 +37,6 @@ public class SetupFragment extends PreferenceFragment {
     private RingtonePreference mRingtone;
     private ListPreference mTime;
     private Preference mDevice;
-
-
-    // TODO: Rename parameter arguments, choose names that match
-
-    private OnFragmentInteractionListener mListener;
 
     /**
      * Use this factory method to create a new instance of
@@ -104,11 +97,7 @@ public class SetupFragment extends PreferenceFragment {
             int realTime = (Integer.valueOf(tempString).intValue() + 1) * 5;
             mTime.setSummary(realTime + "");
         }
-        Bundle bundle = new Bundle();
-//        bundle.putString(KEY_DEVICE, cacheDevice);
-        bundle.putString(KEY_ALARM, cacheAlarm);
-        bundle.putInt(KEY_TIME, cacheTime);
-        onStartup(bundle);
+        EventBus.getDefault().post(new StartupMessage(cacheAlarm, new Integer(cacheTime), cacheDevice));
     }
 
     @Override
@@ -121,54 +110,13 @@ public class SetupFragment extends PreferenceFragment {
                 String address = data.getExtras()
                         .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
                 mDevice.setSummary(address);
-                //Set back a bundle to MainActivity
-                Bundle bundle = new Bundle();
-                bundle.putString(KEY_DEVICE, address);
-                this.onItemChanged(bundle);
+
+                EventBus.getDefault().post(new AddressMessage(address));
 
                 SharedPreferences sp = mDevice.getPreferenceManager().getSharedPreferences();
                 sp.edit().putString(KEY_DEVICE, address).commit();
             } else Log.e("DeviceList", resultCode + "");
         }
-    }
-
-    /**
-     * Item changed, call Activity, bundle may contains alarm, time, device (one or all).
-     * @param bundle
-     *
-     */
-    public void onItemChanged(Bundle bundle) {
-        if (mListener != null) {
-            mListener.onItemChanged(bundle);
-        }
-    }
-
-    /**
-     * Startup call, notify Activity the cached alarm and time.
-     * @param bundle
-     */
-    public void onStartup(Bundle bundle) {
-        if (mListener != null) {
-            mListener.onStartup(bundle);
-        }
-    }
-
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        try {
-            mListener = (OnFragmentInteractionListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
     }
 
     public class SetupChangeListener implements Preference.OnPreferenceChangeListener {
@@ -181,9 +129,7 @@ public class SetupFragment extends PreferenceFragment {
                 SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
                 sp.edit().putString(KEY_ALARM, newValue.toString()).commit();
 
-                Bundle bundle = new Bundle();
-                bundle.putString(KEY_ALARM, newValue.toString());
-                onItemChanged(bundle);
+                EventBus.getDefault().post(new AlarmMessage(newValue.toString()));
 
                 Log.d("SetupFragment:uri=", uri.toString());
                 return true;
@@ -199,9 +145,7 @@ public class SetupFragment extends PreferenceFragment {
 
                 Log.d("SetupFragment:time=", newValue.toString());
 
-                Bundle bundle = new Bundle();
-                bundle.putString(KEY_TIME, realtime + "");
-                onItemChanged(bundle);
+                EventBus.getDefault().post(new TimeMessage(new Integer(realtime)));
 
                 return true;
             }else {
@@ -218,23 +162,4 @@ public class SetupFragment extends PreferenceFragment {
         Ringtone r = RingtoneManager.getRingtone(this.getActivity(), uri);
         return r.getTitle(this.getActivity());
     }
-
-
-
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p/>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        public void onItemChanged(Bundle bundle);
-        public void onStartup(Bundle bundle);
-    }
-
 }

@@ -4,14 +4,18 @@ import android.app.ActionBar;
 import android.app.FragmentTransaction;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
-import android.os.Message;
+import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,29 +26,26 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
-import com.jinsen.bluetoothfinder.Service.BluetoothChatService;
+import com.jinsen.bluetoothfinder.Events.AddressMessage;
+import com.jinsen.bluetoothfinder.Events.AlarmMessage;
+import com.jinsen.bluetoothfinder.Events.StartupMessage;
+import com.jinsen.bluetoothfinder.Events.StatusMessage;
+import com.jinsen.bluetoothfinder.Events.TimeMessage;
 import com.jinsen.bluetoothfinder.R;
+import com.jinsen.bluetoothfinder.Service.BluetoothLeService;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
+import de.greenrobot.event.EventBus;
 
-public class MainActivity extends ActionBarActivity implements SetupFragment.OnFragmentInteractionListener{
+
+public class MainActivity extends ActionBarActivity{
 
     // Debugging
     private static final String TAG = "MainActivity";
     private static final boolean D = true;
 
-    // Message types sent from the BluetoothChatService Handler
-    public static final int MESSAGE_STATE_CHANGE = 1;
-    public static final int MESSAGE_READ = 2;
-    public static final int MESSAGE_WRITE = 3;
-    public static final int MESSAGE_DEVICE_NAME = 4;
-    public static final int MESSAGE_TOAST = 5;
-
-    // Key names received from the BluetoothChatService Handler
-    public static final String DEVICE_NAME = "device_name";
-    public static final String TOAST = "toast";
 
     // Intent request codes
     public static final int REQUEST_CONNECT_DEVICE = 1;
@@ -71,13 +72,40 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     // Local Bluetooth adapter
     private BluetoothAdapter mBluetoothAdapter = null;
     // Member object for the chat services
-    private BluetoothChatService mChatService = null;
+    private BluetoothLeService mBluetoothLeService = null;
     // Player to play the alarm
     private MediaPlayer mPlayer = null;
+
+    // Remote device address
+    private String mDeviceAddress = null;
 
     private static Boolean isQuit = false;
     private Timer mQuitTimer = new Timer();
 
+    private static final Handler mHandler = new Handler();
+
+    private static final long SCAN_INTERVAL_MS = 250;
+    private static boolean mScanning = false;
+
+
+
+    // Code to manage Service lifecycle.
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            if (!mBluetoothLeService.initialize()) {
+                Log.e(TAG, "Unable to initialize Bluetooth");
+                finish();
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mBluetoothLeService = null;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,27 +117,38 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         //Initiate ActionBar
         mTitle = getActionBar();
 
-        // Request Bluetooth
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        // Use this check to determine whether BLE is supported on the device.  Then you can
+        // selectively disable BLE-related features.
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
+            finish();
+        }
 
+        // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
+        // BluetoothAdapter through BluetoothManager.
+        final BluetoothManager bluetoothManager =
+                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = bluetoothManager.getAdapter();
+
+        // if Bluetooth is available
         if (mBluetoothAdapter == null) {
             showText(BT_INVALID);
             finish();
             return;
         }
 
+        // Register Eventbus subcriber
+        EventBus.getDefault().register(this);
+
+        setupFinder();
+
         FragmentTransaction fmTrans = getFragmentManager().beginTransaction();
         fmTrans.replace(R.id.frame, SetupFragment.newInstance(), SetupFragment.TAG);
         fmTrans.addToBackStack(null);
         fmTrans.commit();
 
-        // Register for broadcasts when a device is discovered
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        this.registerReceiver(mReceiver, filter);
-
-        // Register for broadcasts when discovery has finished
-        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        this.registerReceiver(mReceiver, filter);
+        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
 
     }
 
@@ -123,26 +162,16 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-            // Otherwise, setup the chat session
-        } else {
-            if (mChatService == null) setupFinder();
         }
     }
-
     @Override
     public synchronized void onResume() {
         super.onResume();
         if(D) Log.e(TAG, "+ ON RESUME +");
 
-        // Performing this check in onResume() covers the case in which BT was
-        // not enabled during onStart(), so we were paused to enable it...
-        // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
-        if (mChatService != null) {
-            // Only if the state is STATE_NONE, do we know that we haven't started already
-            if (mChatService.getState() == BluetoothChatService.STATE_NONE) {
-                // Start the Bluetooth chat services
-                mChatService.start();
-            }
+        if (mBluetoothLeService != null) {
+            final boolean result = mBluetoothLeService.connect(mDeviceAddress);
+            Log.d(TAG, "Connect request result=" + result);
         }
     }
 
@@ -158,14 +187,18 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     @Override
     public void onStop() {
         super.onStop();
-        if(D) Log.e(TAG, "-- ON STOP --");
+        if (D) Log.e(TAG, "-- ON STOP --");
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // Stop the Bluetooth chat services
-        if (mChatService != null) mChatService.stop();
+
+        unbindService(mServiceConnection);
+        mBluetoothLeService = null;
+
+        // Unregister Eventbus
+        EventBus.getDefault().unregister(this);
         if(D) Log.e(TAG, "--- ON DESTROY ---");
     }
 
@@ -178,13 +211,13 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mSendButtonState) {
+                if (mSendButtonState) {
                     // Running state, change to stop
                     mSendButton.setBackgroundResource(R.drawable.greenbutton);
                     mSendButtonState = false;
                     Log.d(TAG, "StopAlarm");
                     stopAlarm();
-                } else{
+                } else {
                     // Stop state, change to running
                     mSendButton.setBackgroundResource(R.drawable.redbutton);
                     mSendButtonState = true;
@@ -193,67 +226,9 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
 
             }
         });
-        // Initialize the BluetoothChatService to perform bluetooth connections
-        mChatService = new BluetoothChatService(this, mHandler);
 
     }
 
-    // The Handler that gets information back from the BluetoothChatService
-    private final Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MESSAGE_STATE_CHANGE:
-                    if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
-                    switch (msg.arg1) {
-                        case BluetoothChatService.STATE_CONNECTED:
-//                            mTitle.setTitle("连接至");
-//                            mTitle.setSubtitle(mConnectedDeviceName);
-                            stopAlarm();
-                            break;
-                        case BluetoothChatService.STATE_CONNECTING:
-//                            mTitle.setTitle("正在连接");
-                            break;
-                        case BluetoothChatService.STATE_LISTEN:
-                        case BluetoothChatService.STATE_NONE:
-//                            mTitle.setTitle("未连接");
-                            break;
-                        case BluetoothChatService.STATE_LOST:
-                            playAlarm();
-                            Log.d(TAG, "Device is lost!");
-                            showText("设备丢失！");
-                            waitFinder();
-                            break;
-                    }
-                    break;
-                case MESSAGE_WRITE:
-                    byte[] writeBuf = (byte[]) msg.obj;
-                    // construct a string from the buffer
-                    String writeMessage = new String(writeBuf);
-                    if (D) showText("writeMessage: " + writeMessage);
-                    Log.d(TAG, writeMessage);
-                    break;
-                case MESSAGE_READ:
-                    byte[] readBuf = (byte[]) msg.obj;
-                    // construct a string from the valid bytes in the buffer
-                    String readMessage = new String(readBuf, 0, msg.arg1);
-                    if (D) showText("readMessage " + readMessage);
-                    Log.d(TAG, readMessage);
-                    break;
-                case MESSAGE_DEVICE_NAME:
-                    // save the connected device's name
-                    mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
-                    Toast.makeText(getApplicationContext(), "Connected to "
-                            + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
-                    break;
-                case MESSAGE_TOAST:
-                    Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
-                            Toast.LENGTH_SHORT).show();
-                    break;
-
-            }
-        }
-    };
 
 
 
@@ -305,35 +280,46 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
         Toast.makeText(this, string, Toast.LENGTH_LONG).show();
     }
 
-    @Override
-    public void onItemChanged(Bundle bundle) {
-        String tempAlarm = bundle.getString(SetupFragment.KEY_ALARM);
-        String tempDevice = bundle.getString(SetupFragment.KEY_DEVICE);
-        String tempTime = bundle.getString(SetupFragment.KEY_TIME);
+    public void onEvent(AddressMessage message) {
+        String address = message.getAddress();
+        Log.d(TAG, "onAddressMessage : " + address);
+        if (address != null) {
+            remoteDevice = address;
 
-        if (tempAlarm != null) alarm = tempAlarm;
-        if (tempDevice != null) {
-            remoteDevice = tempDevice;
-            BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(tempDevice);
-            mChatService.connect(device);
+            // connect remote device thr mac address
+            mBluetoothLeService.connect(remoteDevice);
         }
-        if (tempTime != null) time = tempTime;
     }
 
-    @Override
-    public void onStartup(Bundle bundle) {
-        String tempAlarm = bundle.getString(SetupFragment.KEY_ALARM);
-//        String tempDevice = bundle.getString(SetupFragment.KEY_DEVICE);
-        String tempTime = bundle.getString(SetupFragment.KEY_TIME);
+    public void onEvent(AlarmMessage message) {
+        String alarm = message.getAlarm();
+        Log.d(TAG, "onAlarmMessage : " + message.getAlarm());
+        if (alarm != null) {
+            this.alarm = alarm;
+        }
+    }
+
+    public void onEvent(TimeMessage message) {
+        String time = message.getTime() + "";
+        Log.d(TAG, "onTimeMessage : " + message.getTime());
+        if (time != null) {
+            this.time = time;
+        }
+    }
+
+    public void onEvent(StartupMessage message) {
+        String tempAlarm = message.getAlarm();
+        String tempDevice = message.getAddress();
+        String tempTime = message.getTime() + "";
 
         if (tempAlarm != null) alarm = tempAlarm;
-//        if (tempDevice != null) remoteDevice = tempDevice;
+        if (tempDevice != null) remoteDevice = tempDevice;
         if (tempTime != null) time = tempTime;
     }
 
     private void startFinder() {
         // Check that we're actually connected before trying anything
-        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+        if (mBluetoothLeService.getState() != mBluetoothLeService.STATE_CONNECTED) {
             Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
 //            showText("还未连接到设备");
             mSendButton.setBackgroundResource(R.drawable.greenbutton);
@@ -362,34 +348,39 @@ public class MainActivity extends ActionBarActivity implements SetupFragment.OnF
     }
 
     private void waitFinder() {
-        mHandler.postDelayed(new Runnable() {
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
-                mBluetoothAdapter.cancelDiscovery();
-                Log.i(TAG, "Start to find the lost finder for 30s");
+                if (mScanning) {
+                    mBluetoothAdapter.stopLeScan(mLeScanCallBack);
+                } else if (!mBluetoothAdapter.startLeScan(mLeScanCallBack)){
+
+                }
+                mScanning = !mScanning;
+                mHandler.postDelayed(this, SCAN_INTERVAL_MS);
             }
-        }, 30*1000);
-        mBluetoothAdapter.startDiscovery();
+        });
     }
 
-    // The BroadcastReceiver that listens for discovered devices and
-    // changes the title when discovery is finished
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+    private BluetoothAdapter.LeScanCallback mLeScanCallBack = new BluetoothAdapter.LeScanCallback() {
         @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
+        public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
+            if (device.getAddress().equals(mDeviceAddress)) {
+                Log.d(TAG,"Refound device : " + device.getAddress());
+                stopAlarm();
 
-            // When discovery finds a device
-            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                // Get the BluetoothDevice object from the Intent
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                if (device.getAddress().equals(remoteDevice)) {
-                    mChatService.connect(device);
-                }
-                // When discovery is finished, change the Activity title
-            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
-                // I dont know what to write here, just leave it now.
-                }
             }
-        };
+        }
+    };
+
+    public void onEventBackgroundThread(StatusMessage message) {
+        int state = message.getState();
+        if (state == BluetoothLeService.STATE_CONNECTED) {
+            stopAlarm();
+        }
+        if (state == BluetoothLeService.STATE_DISCONNECTED) {
+            playAlarm();
+        }
+    }
+
 }
