@@ -84,6 +84,7 @@ public class BluetoothLeService extends Service {
 //                broadcastUpdate(intentAction);
 
                 // Use EventBus to detect onConnection
+                Log.d(TAG, "Connected! ");
                 EventBus.getDefault().post(new StatusMessage(STATE_CONNECTED));
 
                 Log.i(TAG, "Connected to GATT server.");

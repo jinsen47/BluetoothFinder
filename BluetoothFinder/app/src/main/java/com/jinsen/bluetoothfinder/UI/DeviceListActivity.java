@@ -114,7 +114,7 @@ public class DeviceListActivity extends Activity {
                 mPairedDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
             }
         } else {
-            String noDevices = getResources().getText(R.string.none_paired).toString();
+            String noDevices = getString(R.string.none_paired);
             mPairedDevicesArrayAdapter.add(noDevices);
         }
     }
@@ -153,6 +153,8 @@ public class DeviceListActivity extends Activity {
             public void run() {
                 mBtAdapter.stopLeScan(mLeScanCallback);
                 scanButton.setVisibility(View.VISIBLE);
+                setTitle(R.string.scan_finish);
+                setProgressBarIndeterminateVisibility(false);
             }
         }, SCAN_PERIOD);
 
@@ -166,7 +168,15 @@ public class DeviceListActivity extends Activity {
 
             // Get the device MAC address, which is the last 17 chars in the View
             String info = ((TextView) v).getText().toString();
-            String address = info.substring(info.length() - 17);
+            String address;
+
+            // Check invalid click
+            if (info.equals(getString(R.string.none_paired))) {
+                address = null;
+            } else {
+                address = info.substring(info.length() - 17);
+            }
+
 
             // Create the result Intent and include the MAC address
             Intent intent = new Intent();
@@ -187,6 +197,14 @@ public class DeviceListActivity extends Activity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+                            // Add devices with new address only
+                            for (int i = 0; i < mNewDevicesArrayAdapter.getCount(); i++) {
+                                // Spilt item to find address
+                                String oriString = mNewDevicesArrayAdapter.getItem(i);
+                                String oriAddress = oriString.substring(oriString.indexOf("\n") + 1, oriString.length());
+                                if (device.getAddress().equals(oriAddress))
+                                    return;
+                            }
                             mNewDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
                             mNewDevicesArrayAdapter.notifyDataSetChanged();
                         }

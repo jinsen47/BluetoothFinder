@@ -1,22 +1,17 @@
 package com.jinsen.bluetoothfinder.UI;
 
 import android.app.Activity;
-import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.RingtonePreference;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
 import com.jinsen.bluetoothfinder.Events.AddressMessage;
 import com.jinsen.bluetoothfinder.Events.AlarmMessage;
@@ -45,8 +40,7 @@ public class SetupFragment extends PreferenceFragment {
      */
     // TODO: Rename and change types and number of parameters
     public static SetupFragment newInstance() {
-        SetupFragment fragment = new SetupFragment();
-        return fragment;
+        return new SetupFragment();
     }
 
     public SetupFragment() {
@@ -94,10 +88,10 @@ public class SetupFragment extends PreferenceFragment {
         mDevice.setSummary(cacheDevice);
         String tempString = sp.getString(KEY_TIME, "false");
         if (!tempString.equals("false")) {
-            int realTime = (Integer.valueOf(tempString).intValue() + 1) * 5;
+            int realTime = (Integer.valueOf(tempString) + 1) * 5;
             mTime.setSummary(realTime + "");
         }
-        EventBus.getDefault().post(new StartupMessage(cacheAlarm, new Integer(cacheTime), cacheDevice));
+        EventBus.getDefault().post(new StartupMessage(cacheAlarm, cacheTime, cacheDevice));
     }
 
     @Override
@@ -114,7 +108,7 @@ public class SetupFragment extends PreferenceFragment {
                 EventBus.getDefault().post(new AddressMessage(address));
 
                 SharedPreferences sp = mDevice.getPreferenceManager().getSharedPreferences();
-                sp.edit().putString(KEY_DEVICE, address).commit();
+                sp.edit().putString(KEY_DEVICE, address).apply();
             } else Log.e("DeviceList", resultCode + "");
         }
     }
@@ -127,7 +121,7 @@ public class SetupFragment extends PreferenceFragment {
                 Uri uri = Uri.parse(newValue.toString());
                 temp.setSummary(getRingtoneName(uri));
                 SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
-                sp.edit().putString(KEY_ALARM, newValue.toString()).commit();
+                sp.edit().putString(KEY_ALARM, newValue.toString()).apply();
 
                 EventBus.getDefault().post(new AlarmMessage(newValue.toString()));
 
@@ -139,13 +133,13 @@ public class SetupFragment extends PreferenceFragment {
 
                 // preferences may be changed auto-ly after modified, these code dont work
                 SharedPreferences sp = temp.getPreferenceManager().getSharedPreferences();
-                int realtime = ((Integer.valueOf(newValue.toString()).intValue()) + 1 ) * 5;
-                sp.edit().putString(KEY_TIME, newValue.toString()).commit();
+                int realtime = ((Integer.valueOf(newValue.toString())) + 1 ) * 5;
+                sp.edit().putString(KEY_TIME, newValue.toString()).apply();
                 temp.setSummary(realtime + "");
 
                 Log.d("SetupFragment:time=", newValue.toString());
 
-                EventBus.getDefault().post(new TimeMessage(new Integer(realtime)));
+                EventBus.getDefault().post(new TimeMessage(realtime));
 
                 return true;
             }else {

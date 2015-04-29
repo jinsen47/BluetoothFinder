@@ -76,9 +76,6 @@ public class MainActivity extends ActionBarActivity{
     // Player to play the alarm
     private MediaPlayer mPlayer = null;
 
-    // Remote device address
-    private String mDeviceAddress = null;
-
     private static Boolean isQuit = false;
     private Timer mQuitTimer = new Timer();
 
@@ -170,8 +167,11 @@ public class MainActivity extends ActionBarActivity{
         if(D) Log.e(TAG, "+ ON RESUME +");
 
         if (mBluetoothLeService != null) {
-            final boolean result = mBluetoothLeService.connect(mDeviceAddress);
-            Log.d(TAG, "Connect request result=" + result);
+            Log.d(TAG, "remoteDevice = " + remoteDevice);
+            if (remoteDevice != null && !remoteDevice.equals("")) {
+                final boolean result = mBluetoothLeService.connect(remoteDevice);
+                Log.d(TAG, "Connect request result=" + result);
+            }
         }
     }
 
@@ -221,6 +221,7 @@ public class MainActivity extends ActionBarActivity{
                     // Stop state, change to running
                     mSendButton.setBackgroundResource(R.drawable.redbutton);
                     mSendButtonState = true;
+                    Log.d(TAG, "RunAlarm");
                     startFinder();
                 }
 
@@ -273,7 +274,7 @@ public class MainActivity extends ActionBarActivity{
             }
 
         }
-        return true;
+        return super.onKeyDown(keyCode, event);
     }
 
     private void showText(String string) {
@@ -283,7 +284,7 @@ public class MainActivity extends ActionBarActivity{
     public void onEvent(AddressMessage message) {
         String address = message.getAddress();
         Log.d(TAG, "onAddressMessage : " + address);
-        if (address != null) {
+        if (address != null && !address.equals("")) {
             remoteDevice = address;
 
             // connect remote device thr mac address
@@ -308,6 +309,7 @@ public class MainActivity extends ActionBarActivity{
     }
 
     public void onEvent(StartupMessage message) {
+        Log.d(TAG,"Receive startup message");
         String tempAlarm = message.getAlarm();
         String tempDevice = message.getAddress();
         String tempTime = message.getTime() + "";
@@ -347,39 +349,50 @@ public class MainActivity extends ActionBarActivity{
         }
     }
 
-    private void waitFinder() {
-        mHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (mScanning) {
-                    mBluetoothAdapter.stopLeScan(mLeScanCallBack);
-                } else if (!mBluetoothAdapter.startLeScan(mLeScanCallBack)){
+    private void waitFinder(boolean flag) {
+        if (flag) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (mScanning) {
+                        mBluetoothAdapter.stopLeScan(mLeScanCallBack);
+                    } else if (!mBluetoothAdapter.startLeScan(mLeScanCallBack)){
 
+                    }
+                    mScanning = !mScanning;
+                    mHandler.postDelayed(this, SCAN_INTERVAL_MS);
                 }
-                mScanning = !mScanning;
-                mHandler.postDelayed(this, SCAN_INTERVAL_MS);
-            }
-        });
+            });
+        } else {
+            // Remove all messages and callbacks
+            mHandler.removeCallbacksAndMessages(null);
+        }
     }
 
     private BluetoothAdapter.LeScanCallback mLeScanCallBack = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-            if (device.getAddress().equals(mDeviceAddress)) {
+            Log.d(TAG,"Bluetooth device address = " + device.getAddress());
+            if (device.getAddress().equals(remoteDevice)) {
                 Log.d(TAG,"Refound device : " + device.getAddress());
-                stopAlarm();
-
+                mBluetoothLeService.connect(device.getAddress());
             }
         }
     };
 
-    public void onEventBackgroundThread(StatusMessage message) {
+    public void onEventMainThread(StatusMessage message) {
         int state = message.getState();
         if (state == BluetoothLeService.STATE_CONNECTED) {
+            showText("Connected!");
+            Log.d(TAG, "Connected");
             stopAlarm();
+            waitFinder(false);
         }
         if (state == BluetoothLeService.STATE_DISCONNECTED) {
+            showText("Connect Lost");
+            Log.d(TAG, "Connect Lost");
             playAlarm();
+            waitFinder(true);
         }
     }
 

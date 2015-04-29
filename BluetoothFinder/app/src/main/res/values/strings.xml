@@ -24,6 +24,7 @@
 
     <!--  DeviceListActivity -->
     <string name="scanning">正在寻找</string>
+    <string name="scan_finish">搜索完毕</string>
     <string name="select_device">轻触设备以连接</string>
     <string name="none_paired">没有配对设备</string>
     <string name="none_found">没有发现设备</string>
